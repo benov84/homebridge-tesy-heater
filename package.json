@@ -1,0 +1,32 @@
+{
+  "name": "homebridge-tesy-heater-v2",
+  "displayName": "Homebridge Tesy Heater",
+  "version": "1.0.0",
+  "description": "Tesy heater plugin for homebridge: https://github.com/homebridge/homebridge",
+  "license": "ISC",
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "engines": {
+    "node": ">=10.17.0",
+    "homebridge": ">=1.0.0"
+  },
+  "author": "Dobriyan Benov",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benov84/homebridge-tesy-heater.git"
+  },
+  "dependencies": {
+    "request": "^2.65.0",
+    "homebridge-http-base": "2.1.6"
+  },
+  "bugs": {
+    "url": "https://github.com/benov84/homebridge-tesy-heater/issues"
+  },
+  "homepage": "https://github.com/benov84/homebridge-tesy-heater#readme",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
