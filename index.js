@@ -83,7 +83,6 @@ class TesyHeater {
       if(error !== null)
       {
           that.pullTimer.start();
-          callback();
           return;
       }
 
@@ -91,7 +90,6 @@ class TesyHeater {
         if(error !== null)
         {
             that.pullTimer.start();
-            callback();
             return;
         }
 
@@ -99,7 +97,6 @@ class TesyHeater {
             if(error !== null)
             {
                 that.pullTimer.start();
-                callback();
                 return;
             }
 
@@ -212,24 +209,27 @@ class TesyHeater {
     exec(command, function(error, stdout, stderr){
       if(error !== null)
       {
-          that.pullTimer.start();
-          callback();
+        that.log.error(error);
+        that.pullTimer.start();
+        callback();
       }
 
       exec(command2, function(error, stdout, stderr){
         if(error !== null)
         {
-            that.pullTimer.start();
-            callback();
+          that.log.error(error);
+          that.pullTimer.start();
+          callback();
         }
 
         exec(command3, function(error, stdout, stderr){
             if(error !== null)
             {
-                console.log('exec error: ' + error);
-                that.pullTimer.start();
-                callback();
+              that.log.error(error);
+              that.pullTimer.start();
+              callback();
             } else {
+              that.log.info('Set Active done.');
               that.pullTimer.start();
               callback(null, value);
             }
@@ -316,6 +316,7 @@ class TesyHeater {
       if(error !== null)
       {
           that.pullTimer.start();
+          that.log.error(error);
           callback();
       }
 
@@ -323,17 +324,19 @@ class TesyHeater {
         if(error !== null)
         {
             that.pullTimer.start();
+            that.log.error(error);
             callback();
         }
 
         exec(command3, function(error, stdout, stderr){
             if(error !== null)
             {
-                console.log('exec error: ' + error);
+                that.log.error(error);
                 that.pullTimer.start();
                 callback();
             } else {
               that.pullTimer.start();
+              that.log.info('Set Heating Threshold Temperature done.');
               callback(null, value);
             }
         });

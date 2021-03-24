@@ -1,7 +1,7 @@
 {
   "name": "homebridge-tesy-heater-v2",
   "displayName": "Homebridge Tesy Heater",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tesy heater plugin for homebridge: https://github.com/homebridge/homebridge",
   "license": "ISC",
   "keywords": [
