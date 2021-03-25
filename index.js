@@ -337,6 +337,9 @@ class TesyHeater {
             } else {
               that.pullTimer.start();
               that.log.info('Set Heating Threshold Temperature done.');
+              //that.log.info(stdout);
+              //that.getCurrentTemperature.bind(that);
+              //{"stat":"ok"}
               callback(null, value);
             }
         });
