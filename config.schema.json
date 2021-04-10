@@ -10,11 +10,6 @@
         "minLength": 1,
         "required": true
       },
-      "apiroute": {
-        "title": "IP",
-        "type": "string",
-        "required": true
-      },
       "username": {
         "title": "Username",
         "type": "string",
@@ -24,6 +19,21 @@
         "title": "Password",
         "type": "string",
         "required": true
+      },
+      "device_id": {
+        "title": "Device ID",
+        "type": "string",
+        "required": true
+      },
+      "maxTemp": {
+        "title": "Max Temperature",
+        "type": "integer",
+        "default": 30
+      },
+      "minTemp": {
+        "title": "Min Temperature",
+        "type": "integer",
+        "default": 10
       },
       "pullInterval": {
         "title": "Pull Interval",
@@ -37,22 +47,30 @@
       "model": {
         "name": "Model",
         "type": "string"
-      },
-      "serialNumber": {
-        "name": "Camera Serial",
-        "type": "string"
       }
     }
   },
   "layout": [
     "name",
-    "apiroute",
     {
-      "type": "flex",
-      "flex-flow": "row wrap",
+      "type": "section",
+      "title": "My Tesy Cloud Settings",
+      "expandable": true,
+      "expanded": true,
       "items": [
         "username",
         "password"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Device Settings",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        "device_id",
+        "maxTemp",
+        "minTemp"
       ]
     },
     "pullInterval",
@@ -63,8 +81,7 @@
       "expanded": false,
       "items": [
         "manufacturer",
-        "model",
-        "serialNumber"
+        "model"
       ]
     }
   ]

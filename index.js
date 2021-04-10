@@ -5,10 +5,10 @@ const PullTimer = _http_base.PullTimer;
 var util = require('util');
 var exec = require('child_process').exec;
 
-module.exports = function(homebridge){
+module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("homebridge-tesy-heater", "TesyHeater", TesyHeater);
+  homebridge.registerAccessory("homebridge-tesy-heater-v2", "TesyHeater", TesyHeater);
 };
 
 class TesyHeater {
@@ -18,21 +18,18 @@ class TesyHeater {
 
     this.name = config.name;
     this.manufacturer = config.manufacturer || 'Tesy';
-    this.model = config.model || 'Model';
-    this.serialNumber = config.serialNumber || 'Serial Number';
-  
+    this.model = config.model || 'Convector (Heater)';
     this.device_id = config.device_id;
     this.username = config.username || null;
     this.password = config.password || null;
     this.pullInterval = config.pullInterval || 10000;
-    this.timeout = config.timeout || 10000;
     this.maxTemp = config.maxTemp || 30;
     this.minTemp = config.minTemp || 10;
   
-    if(this.username != null && this.password != null){
+    if(this.username != null && this.password != null) {
       var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
         '" https://www.mytesy.com/?do=login'
-      exec(command, function(error, stdout, stderr){
+      exec(command, function(error, stdout, stderr) {
         if(error !== null)
         {
             //TODO: restart this
@@ -40,7 +37,7 @@ class TesyHeater {
       });
     }
 
-    this.log.info(this.name, this.apiroute);
+    this.log.info(this.name);
   
     this.service = new Service.HeaterCooler(this.name);
   
@@ -53,14 +50,14 @@ class TesyHeater {
     callback();
   }
 
-  getTesyHeaterActiveState(state){
+  getTesyHeaterActiveState(state) {
     if (state.toLowerCase() === 'on')
       return Characteristic.Active.ACTIVE;
     else
       return Characteristic.Active.INACTIVE;
   }
 
-  getTesyHeaterCurrentHeaterCoolerState(state){
+  getTesyHeaterCurrentHeaterCoolerState(state) {
     if (state.toUpperCase() === 'READY')
       return Characteristic.CurrentHeaterCoolerState.IDLE;
     else
@@ -68,7 +65,7 @@ class TesyHeater {
   }
 
   refreshTesyHeaterStatus() {
-    this.log.debug("Executing RefreshTesyHeaterStatus from:", this.apiroute);
+    this.log.debug("Executing RefreshTesyHeaterStatus");
 
     this.pullTimer.stop();
 
@@ -79,21 +76,21 @@ class TesyHeater {
     var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
     var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=status&id=' + this.device_id + '"'
 
-    exec(command, function(error, stdout, stderr){
+    exec(command, function(error, stdout, stderr) {
       if(error !== null)
       {
           that.pullTimer.start();
           return;
       }
 
-      exec(command2, function(error, stdout, stderr){
+      exec(command2, function(error, stdout, stderr) {
         if(error !== null)
         {
             that.pullTimer.start();
             return;
         }
 
-        exec(command3, function(error, stdout, stderr){
+        exec(command3, function(error, stdout, stderr) {
             if(error !== null)
             {
                 that.pullTimer.start();
@@ -106,28 +103,30 @@ class TesyHeater {
 
                 var newCurrentTemperature = parseFloat(response.gradus);
                 var oldCurrentTemperature = that.service.getCharacteristic(Characteristic.CurrentTemperature).value;
-                if (newCurrentTemperature != oldCurrentTemperature){
+                if (newCurrentTemperature != oldCurrentTemperature && newCurrentTemperature != undefined &&
+                    newCurrentTemperature >= that.minTemp && newCurrentTemperature <= that.maxTemp) {
                   that.service.getCharacteristic(Characteristic.CurrentTemperature).updateValue(newCurrentTemperature);
                   that.log.info("Changing CurrentTemperature from %s to %s", oldCurrentTemperature, newCurrentTemperature);
                 }
 
                 var newHeatingThresholdTemperature = parseFloat(response.ref_gradus);
                 var oldHeatingThresholdTemperature = that.service.getCharacteristic(Characteristic.HeatingThresholdTemperature).value;
-                if (newHeatingThresholdTemperature != oldHeatingThresholdTemperature){
+                if (newHeatingThresholdTemperature != oldHeatingThresholdTemperature && newHeatingThresholdTemperature != undefined &&
+                    newHeatingThresholdTemperature >= that.minTemp && newHeatingThresholdTemperature <= that.maxTemp) {
                   that.service.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(newHeatingThresholdTemperature);
                   that.log.info("Changing HeatingThresholdTemperature from %s to %s", oldHeatingThresholdTemperature, newHeatingThresholdTemperature);
                 }
 
                 var newHeaterActiveStatus = that.getTesyHeaterActiveState(response.power_sw);
                 var oldHeaterActiveStatus = that.service.getCharacteristic(Characteristic.Active).value;
-                if (newHeaterActiveStatus != oldHeaterActiveStatus){
+                if (newHeaterActiveStatus != oldHeaterActiveStatus && newHeaterActiveStatus !== undefined) {
                   that.service.getCharacteristic(Characteristic.Active).updateValue(newHeaterActiveStatus);
                   that.log.info("Changing ActiveStatus from %s to %s", oldHeaterActiveStatus, newHeaterActiveStatus);
                 }
 
                 var newCurrentHeaterCoolerState = that.getTesyHeaterCurrentHeaterCoolerState(response.heater_state);
                 var oldCurrentHeaterCoolerState = that.service.getCharacteristic(Characteristic.CurrentHeaterCoolerState).value;
-                if (newCurrentHeaterCoolerState != oldCurrentHeaterCoolerState){
+                if (newCurrentHeaterCoolerState != oldCurrentHeaterCoolerState) {
                   that.service.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(newCurrentHeaterCoolerState);
                   that.log.info("Changing CurrentHeaterCoolerState from %s to %s", oldCurrentHeaterCoolerState, newCurrentHeaterCoolerState);
                 }
@@ -143,7 +142,7 @@ class TesyHeater {
 
   getActive(callback) {
     this.pullTimer.stop();
-    callback();
+    callback(null, this.service.getCharacteristic(Characteristic.Active).value);
 
     var that = this;
 
@@ -151,21 +150,21 @@ class TesyHeater {
     var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
     var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=status&id=' + this.device_id + '"'
 
-    exec(command, function(error, stdout, stderr){
+    exec(command, function(error, stdout, stderr) {
       if(error !== null)
       {
           that.pullTimer.start();
           return;
       }
 
-      exec(command2, function(error, stdout, stderr){
+      exec(command2, function(error, stdout, stderr) {
         if(error !== null)
         {
             that.pullTimer.start();
             return;
         }
 
-        exec(command3, function(error, stdout, stderr){
+        exec(command3, function(error, stdout, stderr) {
             if(error !== null)
             {
                 console.log('exec error: ' + error);
@@ -175,7 +174,7 @@ class TesyHeater {
 
             let r = stdout.split('\n');
 
-            let r1 = r.filter(function(item){
+            let r1 = r.filter(function(item) {
               return (item.toLowerCase().includes('heater_state'));
             });
 
@@ -187,7 +186,7 @@ class TesyHeater {
             var response = JSON.parse(r1[0]);
             
             that.pullTimer.start();
-            this.service.getCharacteristic(Characteristic.Active)
+            that.service.getCharacteristic(Characteristic.Active)
               .updateValue(that.getTesyHeaterActiveState(response.power_sw));
           });
         });
@@ -195,7 +194,7 @@ class TesyHeater {
   }
 
   setActive(value, callback) {
-    this.log.info("[+] Changing HeatingThresholdTemperature to value: %s", value);
+    this.log.info("[+] Changing Active status to value: %s", value);
 
     this.pullTimer.stop();
 
@@ -206,7 +205,7 @@ class TesyHeater {
     var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
     var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=power2status&val=' + newValue + '&id=' + this.device_id + '"'
 
-    exec(command, function(error, stdout, stderr){
+    exec(command, function(error, stdout, stderr) {
       if(error !== null)
       {
         that.log.error(error);
@@ -214,7 +213,7 @@ class TesyHeater {
         callback();
       }
 
-      exec(command2, function(error, stdout, stderr){
+      exec(command2, function(error, stdout, stderr) {
         if(error !== null)
         {
           that.log.error(error);
@@ -222,7 +221,7 @@ class TesyHeater {
           callback();
         }
 
-        exec(command3, function(error, stdout, stderr){
+        exec(command3, function(error, stdout, stderr) {
             if(error !== null)
             {
               that.log.error(error);
@@ -239,11 +238,9 @@ class TesyHeater {
   }
 
   getCurrentTemperature(callback) {
-    this.log.debug("Getting CurrentTemperature from:", this.apiroute);
-
     this.pullTimer.stop();
 
-    callback();
+    callback(null, this.service.getCharacteristic(Characteristic.CurrentTemperature).value);
 
     var that = this;
 
@@ -251,21 +248,21 @@ class TesyHeater {
     var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
     var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=status&id=' + this.device_id + '"'
 
-    exec(command, function(error, stdout, stderr){
+    exec(command, function(error, stdout, stderr) {
       if(error !== null)
       {
           that.pullTimer.start();
           return;
       }
 
-      exec(command2, function(error, stdout, stderr){
+      exec(command2, function(error, stdout, stderr) {
         if(error !== null)
         {
             that.pullTimer.start();
             return;
         }
 
-        exec(command3, function(error, stdout, stderr){
+        exec(command3, function(error, stdout, stderr) {
             if(error !== null)
             {
                 that.pullTimer.start();
@@ -274,7 +271,7 @@ class TesyHeater {
 
             let r = stdout.split('\n');
 
-            let r1 = r.filter(function(item){
+            let r1 = r.filter(function(item) {
               return (item.toLowerCase().includes('heater_state'));
             });
 
@@ -290,8 +287,10 @@ class TesyHeater {
             that.log.debug("CurrentTemperature is: %s", currentTemperature);
 
             that.pullTimer.start();
-            this.service.getCharacteristic(Characteristic.CurrentTemperature)
-              .updateValue(that.getTesyHeaterActiveState(currentTemperature));
+            if (currentTemperature != null && currentTemperature >= that.minTemp && currentTemperature <= that.maxTemp) {
+              this.service.getCharacteristic(Characteristic.CurrentTemperature)
+                .updateValue(currentTemperature);
+            }
         });
       });
     });
@@ -312,7 +311,7 @@ class TesyHeater {
     var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
     var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=setTemp&val=' + value + '&id=' + this.device_id + '"'
 
-    exec(command, function(error, stdout, stderr){
+    exec(command, function(error, stdout, stderr) {
       if(error !== null)
       {
           that.pullTimer.start();
@@ -320,7 +319,7 @@ class TesyHeater {
           callback();
       }
 
-      exec(command2, function(error, stdout, stderr){
+      exec(command2, function(error, stdout, stderr) {
         if(error !== null)
         {
             that.pullTimer.start();
@@ -328,7 +327,7 @@ class TesyHeater {
             callback();
         }
 
-        exec(command3, function(error, stdout, stderr){
+        exec(command3, function(error, stdout, stderr) {
             if(error !== null)
             {
                 that.log.error(error);
@@ -340,7 +339,7 @@ class TesyHeater {
               //that.log.info(stdout);
               //that.getCurrentTemperature.bind(that);
               //{"stat":"ok"}
-              callback(null, value);
+              //callback(null, value);
             }
         });
       });
@@ -361,7 +360,7 @@ class TesyHeater {
     this.informationService
       .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
       .setCharacteristic(Characteristic.Model, this.model)
-      .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
+      .setCharacteristic(Characteristic.SerialNumber, this.device_id);
 
     this.service.getCharacteristic(Characteristic.Active)
       .on('get', this.getActive.bind(this))
@@ -394,7 +393,8 @@ class TesyHeater {
         minValue: this.minTemp,
         maxValue: this.maxTemp,
         minStep: 0.5
-      });
+      })
+      .updateValue(this.minTemp);
 
     //adding this characteristic so the marker for current temperature appears in the homekit wheel.
     this.service.getCharacteristic(Characteristic.CoolingThresholdTemperature)

@@ -17,7 +17,9 @@
        "name": "My Tesy Heater",
        "username": "mytesy_username",
        "password": "mytesy_password",
-       "device_id": "XXXXXXXXXXXXXXX"
+       "device_id": "XXXXXXXXXXXXXXX",
+       "maxTemp": 30,
+       "minTemp": 10,
      }
 ]
 ```
