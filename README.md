@@ -54,3 +54,5 @@ You will see a 40-character-long field named "id" - this is your device id. If y
 #### Bottom Line
 
 This plugin is based on homebridge-ecoforest-heater.
+
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
