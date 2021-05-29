@@ -1,7 +1,7 @@
 {
   "name": "homebridge-tesy-heater-v2",
   "displayName": "Homebridge Tesy Heater",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Tesy heater plugin for homebridge: https://github.com/homebridge/homebridge",
   "license": "ISC",
   "keywords": [
@@ -28,5 +28,15 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  }
+  },
+  "funding": [
+    {
+      "type" : "paypal",
+      "url" : "https://paypal.me/benovi"
+    },
+    {
+      "type" : "revolut",
+      "url" : "https://revolut.me/benov"
+    }
+  ]
 }
