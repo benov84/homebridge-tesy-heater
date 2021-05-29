@@ -51,6 +51,8 @@ You will see a 40-character-long field named "id" - this is your device id. If y
 | `model` _(optional)_ | Appears under "Model" for your accessory in the Home app |
 | `serialNumber` _(optional)_ | Appears under "Serial Number" for your accessory in the Home app |
 
+Important! Note that, if you turn off the power, the tesy server returns the latest info from the heater and the current state will not be correct!
+
 #### Bottom Line
 
 This plugin is based on homebridge-ecoforest-heater.
