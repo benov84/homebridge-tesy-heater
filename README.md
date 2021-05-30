@@ -2,6 +2,8 @@
 
 #### Homebridge plugin to control an Tesy Heater (Convector)
 
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
 ## Installation
 
 1. Install [homebridge](https://github.com/homebridge/homebridge#installation-details)
