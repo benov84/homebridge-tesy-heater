@@ -1,6 +1,6 @@
 # homebridge-tesy-heater
 
-#### Homebridge plugin to control an Tesy Heater (Convector)
+#### Homebridge plugin to control a Tesy Heater (Convector)
 
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
