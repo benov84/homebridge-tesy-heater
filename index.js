@@ -28,7 +28,7 @@ class TesyHeater {
   
     if(this.username != null && this.password != null) {
       var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-        '" https://www.mytesy.com/?do=login'
+        '" https://www.mytesy.com/v3/api.php?do=login'
       exec(command, function(error, stdout, stderr) {
         if(error !== null)
         {
@@ -72,9 +72,9 @@ class TesyHeater {
     var that = this;
 
     var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + 
-      '" https://www.mytesy.com/?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=status&id=' + this.device_id + '"'
+      '" https://www.mytesy.com/v3/api.php?do=login'
+    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?do=get_dev"'
+    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?cmd=status&id=' + this.device_id + '"'
 
     exec(command, function(error, stdout, stderr) {
       if(error !== null)
@@ -146,9 +146,9 @@ class TesyHeater {
 
     var that = this;
 
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=status&id=' + this.device_id + '"'
+    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
+    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?do=get_dev"'
+    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?cmd=status&id=' + this.device_id + '"'
 
     exec(command, function(error, stdout, stderr) {
       if(error !== null)
@@ -201,9 +201,9 @@ class TesyHeater {
     var that = this;
 
     let newValue = value === 0 ? 'off' : 'on';
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=power2status&val=' + newValue + '&id=' + this.device_id + '"'
+    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
+    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?do=get_dev"'
+    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?cmd=power2status&val=' + newValue + '&id=' + this.device_id + '"'
 
     exec(command, function(error, stdout, stderr) {
       if(error !== null)
@@ -244,9 +244,9 @@ class TesyHeater {
 
     var that = this;
 
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=status&id=' + this.device_id + '"'
+    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
+    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?do=get_dev"'
+    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?cmd=status&id=' + this.device_id + '"'
 
     exec(command, function(error, stdout, stderr) {
       if(error !== null)
@@ -288,8 +288,10 @@ class TesyHeater {
 
             that.pullTimer.start();
             if (currentTemperature != null && currentTemperature >= that.minTemp && currentTemperature <= that.maxTemp) {
-              this.service.getCharacteristic(Characteristic.CurrentTemperature)
-                .updateValue(currentTemperature);
+              if (that.service) {
+                that.service.getCharacteristic(Characteristic.CurrentTemperature)
+                  .updateValue(currentTemperature);
+              }
             }
         });
       });
@@ -307,9 +309,9 @@ class TesyHeater {
 
     var that = this;
 
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/?cmd=setTemp&val=' + value + '&id=' + this.device_id + '"'
+    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
+    var command2 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?do=get_dev"'
+    var command3 = 'curl -i -b cookie.txt -c cookie.txt "https://www.mytesy.com/v3/api.php?cmd=setTemp&val=' + value + '&id=' + this.device_id + '"'
 
     exec(command, function(error, stdout, stderr) {
       if(error !== null)
