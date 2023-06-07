@@ -10,13 +10,13 @@
         "minLength": 1,
         "required": true
       },
-      "username": {
-        "title": "Username",
+      "session": {
+        "title": "Session ID",
         "type": "string",
         "required": true
       },
-      "password": {
-        "title": "Password",
+      "alt": {
+        "title": "Acc Alt",
         "type": "string",
         "required": true
       },
@@ -58,8 +58,8 @@
       "expandable": true,
       "expanded": true,
       "items": [
-        "username",
-        "password"
+        "session",
+        "alt"
       ]
     },
     {

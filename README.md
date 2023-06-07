@@ -17,8 +17,8 @@
      {
        "accessory": "TesyHeater",
        "name": "My Tesy Heater",
-       "username": "mytesy_username",
-       "password": "mytesy_password",
+       "session": "PHPSESSID",
+       "alt": "X-Acc-Alt",
        "device_id": "XXXXXXXXXXXXXXX",
        "maxTemp": 30,
        "minTemp": 10,
@@ -44,8 +44,8 @@ You will see a 40-character-long field named "id" - this is your device id. If y
 | --- | --- |
 | `accessory` | Must be `TesyHeater` |
 | `name` | Name to appear in the Home app |
-| `username` | Username for mytesy.com |
-| `password` | Password mytesy.com |
+| `session` | PHPSESSID from Cookie |
+| `alt` | X-Acc-Alt - obtain from browser -> developer tools -> network |
 | `device_id` | Heater (Convector) Device Id |
 | `pullInterval` _(optional)_ | This property expects an interval in milliseconds in which the plugin pulls updates from your Ecoforest heater (`10000` is default)  
 | `maxTemp` _(optional)_ | Upper bound for the temperature selector in the Home app (`30` is default) |
