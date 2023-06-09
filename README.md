@@ -2,6 +2,8 @@
 
 #### Homebridge plugin to control a Tesy Heater (Convector)
 
+Updated to Tesy API v4!
+
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
 ## Installation
@@ -17,8 +19,9 @@
      {
        "accessory": "TesyHeater",
        "name": "My Tesy Heater",
-       "session": "PHPSESSID",
-       "alt": "X-Acc-Alt",
+       "userid": "id",
+       "username": "user",
+       "password": "pass",
        "device_id": "XXXXXXXXXXXXXXX",
        "maxTemp": 30,
        "minTemp": 10,
@@ -44,9 +47,10 @@ You will see a 40-character-long field named "id" - this is your device id. If y
 | --- | --- |
 | `accessory` | Must be `TesyHeater` |
 | `name` | Name to appear in the Home app |
-| `session` | PHPSESSID from Cookie |
-| `alt` | X-Acc-Alt - obtain from browser -> developer tools -> network |
-| `device_id` | Heater (Convector) Device Id |
+| `userid` | User Id from Tesy Cloud |
+| `username` | E-mail |
+| `password` | Password |
+| `device_id` | Device Id from Tesy Cloud |
 | `pullInterval` _(optional)_ | This property expects an interval in milliseconds in which the plugin pulls updates from your Ecoforest heater (`10000` is default)  
 | `maxTemp` _(optional)_ | Upper bound for the temperature selector in the Home app (`30` is default) |
 | `minTemp` _(optional)_ | Lower bound for the temperature selector in the Home app (`10` is default) |

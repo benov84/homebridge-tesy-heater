@@ -1,9 +1,6 @@
 var Service, Characteristic;
-var request = require("request");
 const _http_base = require("homebridge-http-base");
 const PullTimer = _http_base.PullTimer;
-var util = require('util');
-var exec = require('child_process').exec;
 
 module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
@@ -20,24 +17,53 @@ class TesyHeater {
     this.manufacturer = config.manufacturer || 'Tesy';
     this.model = config.model || 'Convector (Heater)';
     this.device_id = config.device_id;
-    this.session = config.session || null;
-    this.alt = config.alt || null;
+    this.session = "";//config.session || "";
+    this.alt = "";//config.alt || "";
     this.pullInterval = config.pullInterval || 10000;
     this.maxTemp = config.maxTemp || 30;
     this.minTemp = config.minTemp || 10;
+    
+    this.userid = config.userid || null;
+    this.username = config.username || null;
+    this.password = config.password || null;
 
-    /*
     if(this.username != null && this.password != null) {
-      var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-        '" https://www.mytesy.com/v3/api.php?do=login'
-      exec(command, function(error, stdout, stderr) {
-        if(error !== null)
-        {
-            //TODO: restart this
-        }
+      var request = require('request');
+      var options = {
+        'method': 'POST',
+        'url': 'https://ad.mytesy.com/rest/old-app-login',
+        'headers': {
+          'authority': 'ad.mytesy.com',
+          'accept': 'application/json, text/plain, */*',
+          'accept-language': 'en-US,en;q=0.9,bg;q=0.8',
+          'content-type': 'application/json',
+          'dnt': '1',
+          'origin': 'https://v4.mytesy.com',
+          'referer': 'https://v4.mytesy.com/'
+        },
+        body: JSON.stringify({
+          "email": this.username,
+          "password": this.password,
+          "userID": this.userid,
+          "userEmail": this.username,
+          "userPass": this.password,
+          "lang": "en"
+        })
+
+      };
+      var that = this;
+      request(options, function (error, response) {
+        if (error) throw new Error(error);
+        var data = JSON.parse(response.body);
+        that.session = data.acc_session;
+        that.alt = data.acc_alt;
+
+        that.pullTimer = new PullTimer(that.log, that.pullInterval, that.refreshTesyHeaterStatus.bind(that), () => {});
+        that.pullTimer.start();
       });
+
     }
-    */
+    
     this.log.info(this.name);
   
     this.service = new Service.HeaterCooler(this.name);
@@ -67,67 +93,81 @@ class TesyHeater {
 
   refreshTesyHeaterStatus() {
     this.log.debug("Executing RefreshTesyHeaterStatus");
-
+    
     this.pullTimer.stop();
 
     var that = this;
 
-    /*
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + 
-      '" https://www.mytesy.com/v3/api.php?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?cmd=status&id=' + this.device_id + '"'
-    */
-    var command3 = "curl --location 'https://www.mytesy.com/v3/api.php?cmd=status&id=" + this.device_id + "' --header 'x-acc-alt: " + this.alt + "' --header 'Cookie: PHPSESSID=" + this.session + "'";
-    
-    exec(command3, function(error, stdout, stderr) {
-        if(error !== null)
-        {
-            that.pullTimer.start();
-            that.log.info("Error: ", error.message);
-            return;
+    var request = require('request');
+    var options = {
+      'method': 'POST',
+      'url': 'https://ad.mytesy.com/rest/old-app-devices',
+      'headers': {
+        'authority': 'ad.mytesy.com',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-US,en;q=0.9,bg;q=0.8',
+        'content-type': 'application/json',
+        'dnt': '1',
+        'origin': 'https://v4.mytesy.com',
+        'referer': 'https://v4.mytesy.com/'
+      },
+      body: JSON.stringify({
+        "ALT": this.alt,
+        "CURRENT_SESSION": null,
+        "PHPSESSID": this.session,
+        "last_login_username": this.username,
+        "userID": this.userid,
+        "userEmail": this.username,
+        "userPass": this.password,
+        "lang": "en"
+      })
+
+    };
+    request(options, function (error, response) {
+      if (error) {
+        that.service.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+        throw new Error(error);
+      }
+      try {
+        var data = JSON.parse(response.body);
+        var status = data.device[Object.keys(data.device)[0]].DeviceStatus;
+  
+        var newCurrentTemperature = parseFloat(status.gradus);
+        var oldCurrentTemperature = that.service.getCharacteristic(Characteristic.CurrentTemperature).value;
+        if (newCurrentTemperature != oldCurrentTemperature && newCurrentTemperature != undefined &&
+            newCurrentTemperature >= that.minTemp && newCurrentTemperature <= that.maxTemp) {
+          that.service.getCharacteristic(Characteristic.CurrentTemperature).updateValue(newCurrentTemperature);
+          that.log.info("Changing CurrentTemperature from %s to %s", oldCurrentTemperature, newCurrentTemperature);
         }
-
-        stdout.split('\n').map(item => {
-          if (item.toLowerCase().includes('heater_state')) {
-            var response = JSON.parse(item);
-
-            var newCurrentTemperature = parseFloat(response.gradus);
-            var oldCurrentTemperature = that.service.getCharacteristic(Characteristic.CurrentTemperature).value;
-            if (newCurrentTemperature != oldCurrentTemperature && newCurrentTemperature != undefined &&
-                newCurrentTemperature >= that.minTemp && newCurrentTemperature <= that.maxTemp) {
-              that.service.getCharacteristic(Characteristic.CurrentTemperature).updateValue(newCurrentTemperature);
-              that.log.info("Changing CurrentTemperature from %s to %s", oldCurrentTemperature, newCurrentTemperature);
-            }
-
-            var newHeatingThresholdTemperature = parseFloat(response.ref_gradus);
-            var oldHeatingThresholdTemperature = that.service.getCharacteristic(Characteristic.HeatingThresholdTemperature).value;
-            if (newHeatingThresholdTemperature != oldHeatingThresholdTemperature && newHeatingThresholdTemperature != undefined &&
-                newHeatingThresholdTemperature >= that.minTemp && newHeatingThresholdTemperature <= that.maxTemp) {
-              that.service.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(newHeatingThresholdTemperature);
-              that.log.info("Changing HeatingThresholdTemperature from %s to %s", oldHeatingThresholdTemperature, newHeatingThresholdTemperature);
-            }
-
-            var newHeaterActiveStatus = that.getTesyHeaterActiveState(response.power_sw);
-            var oldHeaterActiveStatus = that.service.getCharacteristic(Characteristic.Active).value;
-            if (newHeaterActiveStatus != oldHeaterActiveStatus && newHeaterActiveStatus !== undefined) {
-              that.service.getCharacteristic(Characteristic.Active).updateValue(newHeaterActiveStatus);
-              that.log.info("Changing ActiveStatus from %s to %s", oldHeaterActiveStatus, newHeaterActiveStatus);
-            }
-
-            var newCurrentHeaterCoolerState = that.getTesyHeaterCurrentHeaterCoolerState(response.heater_state);
-            var oldCurrentHeaterCoolerState = that.service.getCharacteristic(Characteristic.CurrentHeaterCoolerState).value;
-            if (newCurrentHeaterCoolerState != oldCurrentHeaterCoolerState) {
-              that.service.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(newCurrentHeaterCoolerState);
-              that.log.info("Changing CurrentHeaterCoolerState from %s to %s", oldCurrentHeaterCoolerState, newCurrentHeaterCoolerState);
-            }
-            
-            that.pullTimer.start();
-            return;
+  
+        var newHeatingThresholdTemperature = parseFloat(status.ref_gradus);
+        var oldHeatingThresholdTemperature = that.service.getCharacteristic(Characteristic.HeatingThresholdTemperature).value;
+        if (newHeatingThresholdTemperature != oldHeatingThresholdTemperature && newHeatingThresholdTemperature != undefined &&
+            newHeatingThresholdTemperature >= that.minTemp && newHeatingThresholdTemperature <= that.maxTemp) {
+          that.service.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(newHeatingThresholdTemperature);
+          that.log.info("Changing HeatingThresholdTemperature from %s to %s", oldHeatingThresholdTemperature, newHeatingThresholdTemperature);
         }
-      });
+  
+        var newHeaterActiveStatus = that.getTesyHeaterActiveState(status.power_sw);
+        var oldHeaterActiveStatus = that.service.getCharacteristic(Characteristic.Active).value;
+        if (newHeaterActiveStatus != oldHeaterActiveStatus && newHeaterActiveStatus !== undefined) {
+          that.service.getCharacteristic(Characteristic.Active).updateValue(newHeaterActiveStatus);
+          that.log.info("Changing ActiveStatus from %s to %s", oldHeaterActiveStatus, newHeaterActiveStatus);
+        }
+  
+        var newCurrentHeaterCoolerState = that.getTesyHeaterCurrentHeaterCoolerState(status.heater_state);
+        var oldCurrentHeaterCoolerState = that.service.getCharacteristic(Characteristic.CurrentHeaterCoolerState).value;
+        if (newCurrentHeaterCoolerState != oldCurrentHeaterCoolerState) {
+          that.service.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(newCurrentHeaterCoolerState);
+          that.log.info("Changing CurrentHeaterCoolerState from %s to %s", oldCurrentHeaterCoolerState, newCurrentHeaterCoolerState);
+        }
+        
+        that.pullTimer.start();
+        return;
+      } catch(e) {
+        console.log(e);
+        that.pullTimer.start();
+      }
     });
   }
 
@@ -137,40 +177,54 @@ class TesyHeater {
 
     var that = this;
 
-    /*
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?cmd=status&id=' + this.device_id + '"'
-    */
-    var command3 = "curl --location 'https://www.mytesy.com/v3/api.php?cmd=status&id=" + this.device_id + "' --header 'x-acc-alt: " + this.alt + "' --header 'Cookie: PHPSESSID=" + this.session + "'";
+    var request = require('request');
+    var options = {
+      'method': 'POST',
+      'url': 'https://ad.mytesy.com/rest/old-app-devices',
+      'headers': {
+        'authority': 'ad.mytesy.com',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-US,en;q=0.9,bg;q=0.8',
+        'content-type': 'application/json',
+        'dnt': '1',
+        'origin': 'https://v4.mytesy.com',
+        'referer': 'https://v4.mytesy.com/'
+      },
+      body: JSON.stringify({
+        "ALT": this.alt,
+        "CURRENT_SESSION": null,
+        "PHPSESSID": this.session,
+        "last_login_username": this.username,
+        "userID": this.userid,
+        "userEmail": this.username,
+        "userPass": this.password,
+        "lang": "en"
+      })
 
-    exec(command3, function(error, stdout, stderr) {
-        if(error !== null)
-        {
-            console.log('exec error: ' + error);
-            that.pullTimer.start();
-            return;
+    };
+    request(options, function (error, response) {
+      if (error) {
+        that.service.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+        throw new Error(error);
+      }
+      try {
+        var data = JSON.parse(response.body);
+        var status = data.device[Object.keys(data.device)[0]].DeviceStatus;
+  
+        var newHeaterActiveStatus = that.getTesyHeaterActiveState(status.power_sw);
+        var oldHeaterActiveStatus = that.service.getCharacteristic(Characteristic.Active).value;
+        if (newHeaterActiveStatus != oldHeaterActiveStatus && newHeaterActiveStatus !== undefined) {
+          that.service.getCharacteristic(Characteristic.Active).updateValue(newHeaterActiveStatus);
+          that.log.info("Changing ActiveStatus from %s to %s", oldHeaterActiveStatus, newHeaterActiveStatus);
         }
-
-        let r = stdout.split('\n');
-
-        let r1 = r.filter(function(item) {
-          return (item.toLowerCase().includes('heater_state'));
-        });
-
-        if (r1.length !== 1) {
-          that.pullTimer.start();
-          return;
-        }
-
-        var response = JSON.parse(r1[0]);
-        
+  
         that.pullTimer.start();
-        that.service.getCharacteristic(Characteristic.Active)
-          .updateValue(that.getTesyHeaterActiveState(response.power_sw));
-      });
+        return;
+      } catch(e) {
+        console.log(e);
+        that.pullTimer.start();
+      }
+    });
   }
 
   setActive(value, callback) {
@@ -181,27 +235,39 @@ class TesyHeater {
     var that = this;
 
     let newValue = value === 0 ? 'off' : 'on';
-    /*
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?cmd=power2status&val=' + newValue + '&id=' + this.device_id + '"'
-    */
-    var command3 = "curl --location 'https://www.mytesy.com/v3/api.php?cmd=power2status&val=" + newValue + "&id=" + this.device_id + "' --header 'x-acc-alt: " + this.alt + "' --header 'Cookie: PHPSESSID=" + this.session + "'";
 
-    exec(command3, function(error, stdout, stderr) {
-        if(error !== null)
-        {
-          that.log.error(error);
-          that.pullTimer.start();
-          callback();
-        } else {
-          that.log.info('Set Active done.');
-          that.pullTimer.start();
-          callback(null, value);
-        }
-    });
+    var request = require('request');
+    var options = {
+      'method': 'POST',
+      'url': 'https://ad.mytesy.com/rest/old-app-set-device-status',
+      'headers': {
+        'authority': 'ad.mytesy.com',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-US,en;q=0.9,bg;q=0.8',
+        'content-type': 'application/json',
+        'dnt': '1',
+        'origin': 'https://v4.mytesy.com',
+        'referer': 'https://v4.mytesy.com/'
+      },
+      body: JSON.stringify({
+        "ALT": this.alt,
+        "CURRENT_SESSION": null,
+        "PHPSESSID": this.session,
+        "last_login_username": this.username,
+        "id": this.device_id,
+        "apiVersion": "apiv1",
+        "command": "power_sw",
+        "value": newValue,
+        "userID": this.userid,
+        "userEmail": this.username,
+        "userPass": this.password,
+        "lang": "en"
+      })
+    };
+    request(options, function (error, response) {
+      callback(null, value);
+      that.pullTimer.start();
+    });    
   }
 
   getCurrentTemperature(callback) {
@@ -211,47 +277,54 @@ class TesyHeater {
 
     var that = this;
 
-    /*
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?cmd=status&id=' + this.device_id + '"'
-    */
-    var command3 = "curl --location 'https://www.mytesy.com/v3/api.php?cmd=status&id=" + this.device_id + "' --header 'x-acc-alt: " + this.alt + "' --header 'Cookie: PHPSESSID=" + this.session + "'";
+    var request = require('request');
+    var options = {
+      'method': 'POST',
+      'url': 'https://ad.mytesy.com/rest/old-app-devices',
+      'headers': {
+        'authority': 'ad.mytesy.com',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-US,en;q=0.9,bg;q=0.8',
+        'content-type': 'application/json',
+        'dnt': '1',
+        'origin': 'https://v4.mytesy.com',
+        'referer': 'https://v4.mytesy.com/'
+      },
+      body: JSON.stringify({
+        "ALT": this.alt,
+        "CURRENT_SESSION": null,
+        "PHPSESSID": this.session,
+        "last_login_username": this.username,
+        "userID": this.userid,
+        "userEmail": this.username,
+        "userPass": this.password,
+        "lang": "en"
+      })
 
-    exec(command3, function(error, stdout, stderr) {
-        if(error !== null)
-        {
-            that.pullTimer.start();
-            that.log.info("Error: ", error.message);
-            return;
+    };
+    request(options, function (error, response) {
+      if (error) {
+        that.service.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+        throw new Error(error);
+      }
+      try {
+        var data = JSON.parse(response.body);
+        var status = data.device[Object.keys(data.device)[0]].DeviceStatus;
+    
+        var newCurrentTemperature = parseFloat(status.gradus);
+        var oldCurrentTemperature = that.service.getCharacteristic(Characteristic.CurrentTemperature).value;
+        if (newCurrentTemperature != oldCurrentTemperature && newCurrentTemperature != undefined &&
+            newCurrentTemperature >= that.minTemp && newCurrentTemperature <= that.maxTemp) {
+          that.service.getCharacteristic(Characteristic.CurrentTemperature).updateValue(newCurrentTemperature);
+          that.log.info("Changing CurrentTemperature from %s to %s", oldCurrentTemperature, newCurrentTemperature);
         }
-
-        let r = stdout.split('\n');
-
-        let r1 = r.filter(function(item) {
-          return (item.toLowerCase().includes('heater_state'));
-        });
-
-        if (r1.length !== 1) {
-          that.pullTimer.start();
-          return;
-        }
-
-        var response = JSON.parse(r1[0]);
-        
-        var currentTemperature = parseFloat(response.gradus);
-
-        that.log.debug("CurrentTemperature is: %s", currentTemperature);
-
+  
         that.pullTimer.start();
-        if (currentTemperature != null && currentTemperature >= that.minTemp && currentTemperature <= that.maxTemp) {
-          if (that.service) {
-            that.service.getCharacteristic(Characteristic.CurrentTemperature)
-              .updateValue(currentTemperature);
-          }
-        }
+        return;
+      } catch(e) {
+        console.log(e);
+        that.pullTimer.start();
+      }
     });
   }
 
@@ -263,33 +336,42 @@ class TesyHeater {
     this.log.info("[+] Changing HeatingThresholdTemperature to value: %s", value);
 
     this.pullTimer.stop();
-
+    
     var that = this;
 
-    /*
-    var command = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password + '" https://www.mytesy.com/v3/api.php?do=login'
-    var command2 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?do=get_dev"'
-    var command3 = 'curl -i -b cookie.txt -c cookie.txt -d "user=' + this.username + '&pass=' + this.password +
-      '" "https://www.mytesy.com/v3/api.php?cmd=setTemp&val=' + value + '&id=' + this.device_id + '"'
-    */
-    var command3 = "curl --location 'https://www.mytesy.com/v3/api.php?cmd=setTemp&val=" + value + "&id=" + this.device_id + "' --header 'x-acc-alt: " + this.alt + "' --header 'Cookie: PHPSESSID=" + this.session + "'";
-
-    exec(command3, function(error, stdout, stderr) {
-        if(error !== null)
-        {
-            that.log.error(error);
-            that.pullTimer.start();
-            callback();
-        } else {
-          that.pullTimer.start();
-          that.log.info('Set Heating Threshold Temperature done.');
-          //that.log.info(stdout);
-          //that.getCurrentTemperature.bind(that);
-          //{"stat":"ok"}
-          //callback(null, value);
-        }
-    });
+    var request = require('request');
+    var options = {
+      'method': 'POST',
+      'url': 'https://ad.mytesy.com/rest/old-app-set-device-status',
+      'headers': {
+        'authority': 'ad.mytesy.com',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-US,en;q=0.9,bg;q=0.8',
+        'content-type': 'application/json',
+        'dnt': '1',
+        'origin': 'https://v4.mytesy.com',
+        'referer': 'https://v4.mytesy.com/'
+      },
+      body: JSON.stringify({
+        "ALT": this.alt,
+        "CURRENT_SESSION": null,
+        "PHPSESSID": this.session,
+        "last_login_username": this.username,
+        "id": this.device_id,
+        "apiVersion": "apiv1",
+        "command": "tmpT",
+        "value": value,
+        "userID": this.userid,
+        "userEmail": this.username,
+        "userPass": this.password,
+        "lang": "en"
+      })
+    
+    };
+    request(options, function (error, response) {
+      callback(null, value);
+      that.pullTimer.start();
+    });    
   }
 
   getTargetHeaterCoolerState(callback) {
