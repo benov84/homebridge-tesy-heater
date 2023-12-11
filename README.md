@@ -35,11 +35,8 @@ Login at
 
 [My Tesy Cloud](http://mytesy.com)
 
-with your user name and password, then open this link:
-
-[https://www.mytesy.com/v3/api.php?do=get_dev](https://www.mytesy.com/v3/api.php?do=get_dev)
-
-You will see a 40-character-long field named "id" - this is your device id. If you have multiple devices (Heater, Convector), config them as separate accessories.
+then open browser's Developer Tools. Go to Network tab and you will see requests named "old-app-devices".
+Click on them one by one and look at the Response tab on right. You will find the device id inside Json response in field named "id". The device id is 40-symbol long combination of numbers and letters.
 
 ### Structure
 
