@@ -126,7 +126,9 @@ class TesyHeater {
     request(options, function (error, response) {
       if (error) {
         that.service.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
-        throw new Error(error);
+        that.pullTimer.start();
+        return;
+        //throw new Error(error);
       }
       try {
         var data = JSON.parse(response.body);
