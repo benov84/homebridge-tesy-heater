@@ -167,6 +167,7 @@ class TesyHeater {
       } catch(e) {
         console.log(e);
         that.pullTimer.start();
+        that.service.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
       }
     });
   }
